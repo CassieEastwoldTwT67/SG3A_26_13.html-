@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>豹紋8-bit 飲食熱量計算機</title>
+  <style>
+    * { box-sizing: border-box; font-family: 'Courier New', 'Courier', 'Press Start 2P', monospace; }
+    body {
+      margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center;
+      background-color: #1a0f0a;
+      background-image: 
+        radial-gradient(circle at 10% 20%, #b3733c 3px, transparent 3px),
+        radial-gradient(circle at 25% 45%, #8b5a2b 5px, transparent 5px),
+        radial-gradient(circle at 80% 70%, #6b4a1e 7px, transparent 7px),
+        radial-gradient(circle at 45% 85%, #d49b5c 4px, transparent 4px),
+        radial-gradient(circle at 92% 12%, #af7a3f 6px, transparent 6px),
+        radial-gradient(circle at 60% 30%, #9e6b2e 8px, transparent 8px),
+        radial-gradient(circle at 15% 90%, #e0b07e 5px, transparent 5px),
+        linear-gradient(45deg, #3f2c1a 0%, #5e3f24 100%);
+      background-size: 120px 120px, 180px 180px, 200px 200px, 150px 150px, 220px 220px, 250px 250px, 180px 180px, 100% 100%;
+      padding: 20px; image-rendering: pixelated;
+    }
+    .gameboy {
+      max-width: 1000px; width: 100%; background: #e6d5b8; border: 8px solid #4a2e1b;
+      box-shadow: 12px 12px 0 #2b1a0e, 0 0 0 4px #ffcc00 inset; padding: 18px 18px 22px;
+      position: relative; border-radius: 0;
+    }
+    .deco-star { position: absolute; color: #ff69b4; font-size: 28px; text-shadow: 3px 3px 0 #000; pointer-events: none; z-index: 5; line-height: 1; }
+    .star1 { top: -15px; left: -10px; transform: rotate(15deg); }
+    .star2 { bottom: -10px; right: -15px; transform: rotate(-10deg); color: #00ffff; }
+    .star3 { top: 30%; right: 10px; font-size: 22px; color: #ffff00; text-shadow: 2px 2px 0 #ff00ff; }
+    .pixel-heart { position: absolute; color: #ff1493; font-size: 32px; filter: drop-shadow(4px 4px 0 #000); pointer-events: none; opacity: 0.8; }
+    .heart1 { top: 5px; right: 25px; transform: scaleX(-1); }
+    .heart2 { bottom: 15px; left: 15px; font-size: 24px; color: #ff4500; }
+    h1, h2 {
+      font-size: 1.8rem; letter-spacing: 2px; text-transform: uppercase; color: #fff;
+      text-shadow: 3px 3px 0 #ff00ff, 6px 6px 0 #000, 0 0 0 3px #000;
+      background: #ff9900; display: inline-block; padding: 6px 14px; border: 4px solid #000; margin: 0 0 16px 0;
+      font-family: 'Courier New', 'Press Start 2P', monospace; font-weight: 900; transform: skewX(-5deg);
+    }
+    h2 { font-size: 1.2rem; text-shadow: 2px 2px 0 #00ffff, 4px 4px 0 #000; background: #00aaff; padding: 4px 10px; margin: 16px 0 8px 0; }
+    .panel { background: #fff5e1; border: 5px solid #5a3e1b; padding: 14px 16px; margin-bottom: 20px; box-shadow: 6px 6px 0 #2b1a0e, inset 0 0 0 2px #ffbb77; }
+    .row { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
+    .field-group { display: flex; align-items: center; gap: 8px; background: #ffefd0; padding: 6px 12px; border: 3px solid #8b5a2b; box-shadow: 3px 3px 0 #5a3e1b; }
+    label { font-weight: bold; color: #3b220d; font-size: 0.95rem; white-space: nowrap; text-shadow: 1px 1px 0 #ffb87a; }
+    select, input[type="number"], input[type="text"] {
+      background: #d9c8a9; border: 3px solid #3d2b16; color: #1e1307; font-weight: bold; padding: 6px 10px; font-size: 0.9rem;
+      font-family: 'Courier New', monospace; box-shadow: inset 2px 2px 0 #7a5e3e, 2px 2px 0 #000; outline: none;
+    }
+    select:focus, input:focus { background: #fef5b0; border-color: #ff1493; box-shadow: 0 0 0 3px #ffff00, inset 2px 2px 0 #b08b5c; }
+    .pixel-btn {
+      background: #ffbb00; border: 4px solid #000; color: #1e1307; font-weight: 900; padding: 8px 22px; font-size: 1rem;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer; box-shadow: 5px 5px 0 #000, inset -2px -2px 0 #aa7700, inset 2px 2px 0 #ffeeaa;
+      transition: 0.05s linear; font-family: 'Courier New', monospace; transform: skewX(-3deg);
+    }
+    .pixel-btn:active { transform: skewX(-3deg) translate(3px, 3px); box-shadow: 2px 2px 0 #000, inset -2px -2px 0 #aa7700; }
+    .pixel-btn.secondary { background: #00ccff; box-shadow: 5px 5px 0 #000, inset -2px -2px 0 #006688, inset 2px 2px 0 #aaddff; }
+    .food-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px 14px; margin: 12px 0;
+      max-height: 300px; overflow-y: auto; padding: 8px; background: #dac09a; border: 4px solid #6b4a1e; box-shadow: inset 0 0 0 3px #b38b5a;
+    }
+    .food-item {
+      display: flex; align-items: center; gap: 8px; background: #fef7e0; padding: 8px 10px; border: 3px solid #7a5a2a;
+      box-shadow: 3px 3px 0 #3d2b16; cursor: pointer; transition: 0.05s linear; font-size: 0.9rem; font-weight: bold; color: #2d1d0e; user-select: none;
+    }
+    .food-item:hover { background: #fff1b0; border-color: #ff1493; transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #3d2b16; }
+    .food-item input[type="checkbox"] { width: 20px; height: 20px; accent-color: #ff00aa; image-rendering: pixelated; transform: scale(1.1); margin-right: 4px; filter: drop-shadow(2px 2px 0 #000); }
+    .food-item .cal-badge { margin-left: auto; background: #ff8c00; color: #000; font-weight: 900; padding: 2px 8px; border: 2px solid #000; font-size: 0.8rem; box-shadow: 2px 2px 0 #000; }
+    .custom-food-area { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0 6px; align-items: center; background: #b38b5a; padding: 12px; border: 4px solid #4a2e1b; box-shadow: inset 0 0 0 3px #e6c9a0; }
+    .custom-food-area input { flex: 2 1 160px; min-width: 120px; background: #fffae6; }
+    .total-box { background: #000; border: 6px solid #ffcc00; padding: 16px; text-align: center; margin: 20px 0 10px; box-shadow: 8px 8px 0 #ff1493, 0 0 0 4px #ffcc00 inset; }
+    .total-cal { font-size: 2.6rem; font-weight: 900; color: #ffdd44; text-shadow: 4px 4px 0 #ff00ff, 8px 8px 0 #000; letter-spacing: 4px; font-family: 'Courier New', monospace; word-break: break-word; }
+    .total-label { color: #fff; font-size: 1rem; text-transform: uppercase; letter-spacing: 3px; text-shadow: 2px 2px 0 #000; }
+    .advice-box { background: #c7e6ff; border: 6px solid #0044cc; padding: 14px 18px; font-size: 1.05rem; line-height: 1.6; color: #001122; box-shadow: 8px 8px 0 #002277, inset 0 0 0 3px #7fb4ff; font-weight: bold; white-space: pre-wrap; word-break: break-word; margin-top: 14px; }
+    .advice-box span { background: #ffffaa; padding: 2px 6px; border: 2px solid #000; display: inline-block; margin: 4px 0; }
+    .target-display { font-size: 1.4rem; color: #ff4500; font-weight: 900; text-shadow: 2px 2px 0 #ffff00; background: #000; padding: 4px 12px; display: inline-block; border: 3px solid #ffaa00; }
+    ::-webkit-scrollbar { width: 16px; background: #8b5a2b; }
+    ::-webkit-scrollbar-thumb { background: #ff8c00; border: 4px solid #3d2b16; box-shadow: inset 0 0 0 2px #ffcc00; }
+    .pixel-icon { display: inline-block; font-size: 1.4rem; filter: drop-shadow(2px 2px 0 #000); }
+  </style>
+</head>
+<body>
+  <div class="deco-star star1">★</div>
+  <div class="deco-star star2">✦</div>
+  <div class="deco-star star3">✧</div>
+  <div class="pixel-heart heart1">❤️</div>
+  <div class="pixel-heart heart2">💖</div>
+
+  <div class="gameboy">
+    <h1>🐆 豹紋8-bit 熱量計算機 🐆</h1>
+    <div class="panel">
+      <div class="row">
+        <div class="field-group">
+          <label>🎂 年齡</label>
+          <select id="age">
+            <option value="18">18-29歲</option>
+            <option value="30">30-39歲</option>
+            <option value="40">40-49歲</option>
+            <option value="50">50-59歲</option>
+            <option value="60">60歲以上</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>⚧ 性別</label>
+          <select id="gender">
+            <option value="male">男 ♂</option>
+            <option value="female">女 ♀</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>🏃 活動量</label>
+          <select id="activity">
+            <option value="1.2">久坐 (1.2)</option>
+            <option value="1.375" selected>輕度 (1.375)</option>
+            <option value="1.55">中度 (1.55)</option>
+            <option value="1.725">高度 (1.725)</option>
+            <option value="1.9">極高 (1.9)</option>
+          </select>
+        </div>
+        <button class="pixel-btn" id="calcTargetBtn">計算目標熱量</button>
+      </div>
+      <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <span class="pixel-icon">🎯</span>
+        <span style="font-weight: 900; color: #4a2e1b; font-size: 1.1rem;">每日建議攝取：</span>
+        <span class="target-display" id="targetCalDisplay">0</span>
+        <span style="font-weight: bold; color: #5a3e1b;">大卡</span>
+      </div>
+    </div>
+
+    <h2>🍔 選擇今日食物 (勾選) 🍕</h2>
+    <div class="food-grid" id="foodGrid"></div>
+    <div class="custom-food-area">
+      <span class="pixel-icon">✏️</span>
+      <input type="text" id="customFoodName" placeholder="自訂食物名稱 (例：雞排)" style="flex: 2 1 160px;">
+      <input type="number" id="customFoodCal" placeholder="熱量 (大卡)" min="0" step="1" style="flex: 1 1 100px;">
+      <button class="pixel-btn secondary" id="addCustomBtn">+ 新增</button>
+      <button class="pixel-btn" id="clearCustomBtn" style="background: #ff6666;">清除自訂</button>
+    </div>
+
+    <div class="total-box">
+      <div class="total-label">🔥 今日已攝取 🔥</div>
+      <div class="total-cal" id="totalCalories">0</div>
+      <div class="total-label" style="font-size:0.9rem;">大卡</div>
+    </div>
+
+    <h2>💡 個性化健康建議</h2>
+    <div class="advice-box" id="adviceBox">請先選擇食物或計算目標熱量～</div>
+    <div style="margin-top: 20px; display: flex; gap: 16px; flex-wrap: wrap; justify-content: flex-end;">
+      <button class="pixel-btn" id="resetAllBtn" style="background: #ffaa00;">重置全部</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const foodDB = [
+        { name: '白飯 (1碗)', cal: 280 }, { name: '炒麵 (1份)', cal: 380 }, { name: '水餃 (10顆)', cal: 400 },
+        { name: '雞胸肉 (100g)', cal: 165 }, { name: '滷蛋 (1顆)', cal: 75 }, { name: '炸雞腿 (1支)', cal: 310 },
+        { name: '薯條 (中)', cal: 330 }, { name: '漢堡 (牛肉)', cal: 550 }, { name: '披薩 (1片)', cal: 285 },
+        { name: '珍珠奶茶 (700ml)', cal: 650 }, { name: '可樂 (330ml)', cal: 139 }, { name: '豆漿 (300ml)', cal: 150 },
+        { name: '燙青菜 (1份)', cal: 50 }, { name: '蘋果 (1顆)', cal: 95 }, { name: '香蕉 (1根)', cal: 105 },
+        { name: '酪梨 (半顆)', cal: 160 }, { name: '巧克力 (50g)', cal: 280 }, { name: '雞蛋糕 (1份)', cal: 210 },
+        { name: '沙拉 (和風)', cal: 120 }, { name: '鮭魚 (100g)', cal: 208 }, { name: '豆腐 (半盒)', cal: 90 },
+        { name: '玉米濃湯 (1碗)', cal: 180 }
+      ];
+      let customFoods = [];
+      const foodGrid = document.getElementById('foodGrid');
+      const customFoodName = document.getElementById('customFoodName');
+      const customFoodCal = document.getElementById('customFoodCal');
+      const addCustomBtn = document.getElementById('addCustomBtn');
+      const clearCustomBtn = document.getElementById('clearCustomBtn');
+      const totalCaloriesSpan = document.getElementById('totalCalories');
+      const adviceBox = document.getElementById('adviceBox');
+      const targetCalDisplay = document.getElementById('targetCalDisplay');
+      const calcTargetBtn = document.getElementById('calcTargetBtn');
+      const resetAllBtn = document.getElementById('resetAllBtn');
+      const ageSelect = document.getElementById('age');
+      const genderSelect = document.getElementById('gender');
+      const activitySelect = document.getElementById('activity');
+      let targetCalories = 0;
+
+      function renderFoodGrid() {
+        const checkedNames = new Set();
+        document.querySelectorAll('.food-checkbox:checked').forEach(cb => checkedNames.add(cb.dataset.name));
+        foodGrid.innerHTML = '';
+        foodDB.forEach(food => {
+          const div = document.createElement('div'); div.className = 'food-item';
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.className = 'food-checkbox';
+          checkbox.dataset.name = food.name; checkbox.dataset.cal = food.cal;
+          if (checkedNames.has(food.name)) checkbox.checked = true;
+          checkbox.addEventListener('change', updateTotalAndAdvice);
+          const labelSpan = document.createElement('span'); labelSpan.textContent = food.name; labelSpan.style.flex = '1';
+          const calSpan = document.createElement('span'); calSpan.className = 'cal-badge'; calSpan.textContent = food.cal + '卡';
+          div.appendChild(checkbox); div.appendChild(labelSpan); div.appendChild(calSpan);
+          div.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') { checkbox.checked = !checkbox.checked; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
+          });
+          foodGrid.appendChild(div);
+        });
+        customFoods.forEach((food, index) => {
+          const div = document.createElement('div'); div.className = 'food-item'; div.style.backgroundColor = '#ffe0b0';
+          const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.className = 'food-checkbox';
+          const uniqueName = food.name + '_custom_' + index;
+          checkbox.dataset.name = uniqueName; checkbox.dataset.cal = food.cal;
+          if (checkedNames.has(uniqueName)) checkbox.checked = true;
+          checkbox.addEventListener('change', updateTotalAndAdvice);
+          const labelSpan = document.createElement('span'); labelSpan.textContent = food.name + ' (自訂)'; labelSpan.style.flex = '1';
+          const calSpan = document.createElement('span'); calSpan.className = 'cal-badge'; calSpan.textContent = food.cal + '卡'; calSpan.style.backgroundColor = '#ffaa00';
+          div.appendChild(checkbox); div.appendChild(labelSpan); div.appendChild(calSpan);
+          div.addEventListener('click', (e) => {
+            if (e.target.tagName !== 'INPUT') { checkbox.checked = !checkbox.checked; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
+          });
+          foodGrid.appendChild(div);
+        });
+        updateTotalAndAdvice();
+      }
+
+      function updateTotalAndAdvice() {
+        let total = 0;
+        document.querySelectorAll('.food-checkbox:checked').forEach(cb => total += parseFloat(cb.dataset.cal) || 0);
+        totalCaloriesSpan.textContent = total;
+        if (targetCalories === 0) calculateTarget(false);
+        generateAdvice(total);
+      }
+
+      function calculateTarget(updateAdvice = true) {
+        const ageVal = parseInt(ageSelect.value);
+        const gender = genderSelect.value;
+        const activity = parseFloat(activitySelect.value);
+        let base = 0;
+        if (gender === 'male') {
+          if (ageVal === 18) base = 2400; else if (ageVal === 30) base = 2300; else if (ageVal === 40) base = 2200; else if (ageVal === 50) base = 2100; else base = 2000;
+        } else {
+          if (ageVal === 18) base = 1900; else if (ageVal === 30) base = 1800; else if (ageVal === 40) base = 1700; else if (ageVal === 50) base = 1600; else base = 1500;
+        }
+        targetCalories = Math.round(base * activity);
+        targetCalDisplay.textContent = targetCalories;
+        if (updateAdvice) {
+          let total = 0;
+          document.querySelectorAll('.food-checkbox:checked').forEach(cb => total += parseFloat(cb.dataset.cal) || 0);
+          generateAdvice(total);
+        }
+      }
+
+      function generateAdvice(total) {
+        if (targetCalories === 0) { adviceBox.innerHTML = '請先點擊「計算目標熱量」按鈕，以獲得個人化建議！'; return; }
+        const diff = total - targetCalories;
+        let adviceText = `🎯 你的每日建議攝取量為 <span>${targetCalories} 大卡</span>，今日已攝取 <span>${total} 大卡</span>。<br>`;
+        if (diff > 0) {
+          adviceText += `⚠️ 超出建議量 <span>${diff} 大卡</span>。<br>`;
+          if (diff <= 100) adviceText += '💡 稍微超標，飯後散步 20 分鐘即可平衡！';
+          else if (diff <= 300) adviceText += '💡 建議增加 30 分鐘有氧運動，並減少下一餐的高油糖食物。';
+          else if (diff <= 600) adviceText += '💡 超標較多！建議進行 45 分鐘中強度運動，避免油炸與含糖飲料。';
+          else adviceText += '💡 嚴重超標！建議延長運動時間至 60 分鐘，接下來幾餐選擇清淡、高纖食物。';
+          adviceText += '<br>🍟 注意：減少高油、高糖食物。';
+        } else if (diff < 0) {
+          const deficit = -diff;
+          adviceText += `⚠️ 還差 <span>${deficit} 大卡</span> 才達到建議量。<br>`;
+          if (deficit <= 100) adviceText += '💡 稍微不足，可以補充一份水果或一杯無糖豆漿。';
+          else if (deficit <= 300) adviceText += '💡 建議補充優質蛋白質（如雞蛋、豆腐、雞胸肉）與全穀類。';
+          else if (deficit <= 600) adviceText += '💡 熱量缺口較大！請增加一餐或點心，選擇堅果、優格、香蕉等高營養食物。';
+          else adviceText += '💡 攝取嚴重不足！請確保三餐正常，多攝取蛋白質與健康油脂。';
+          adviceText += '<br>🥚 別忘了補充優質蛋白質與蔬菜！';
+        } else {
+          adviceText += '✅ 完美！剛剛好達到每日建議熱量，繼續保持均衡飲食！';
+        }
+        adviceText += '<br><span>💖 健康第一，記得喝水與運動！ 💖</span>';
+        adviceBox.innerHTML = adviceText;
+      }
+
+      function addCustomFood() {
+        const name = customFoodName.value.trim(); const cal = parseFloat(customFoodCal.value);
+        if (!name) { alert('請輸入食物名稱！'); return; }
+        if (isNaN(cal) || cal < 0) { alert('請輸入有效的熱量數字！'); return; }
+        customFoods.push({ name: name, cal: Math.round(cal) });
+        customFoodName.value = ''; customFoodCal.value = '';
+        renderFoodGrid();
+      }
+
+      function clearCustomFoods() {
+        if (customFoods.length === 0) return;
+        if (confirm('確定清除所有自訂食物嗎？')) { customFoods = []; renderFoodGrid(); }
+      }
+
+      function resetAll() {
+        document.querySelectorAll('.food-checkbox').forEach(cb => cb.checked = false);
+        customFoods = []; targetCalories = 0; targetCalDisplay.textContent = '0';
+        ageSelect.value = '18'; genderSelect.value = 'male'; activitySelect.value = '1.375';
+        renderFoodGrid(); updateTotalAndAdvice();
+        adviceBox.innerHTML = '請先選擇食物或計算目標熱量～';
+        customFoodName.value = ''; customFoodCal.value = '';
+      }
+
+      calcTargetBtn.addEventListener('click', () => { calculateTarget(true); updateTotalAndAdvice(); });
+      addCustomBtn.addEventListener('click', addCustomFood);
+      clearCustomBtn.addEventListener('click', clearCustomFoods);
+      resetAllBtn.addEventListener('click', resetAll);
+      ageSelect.addEventListener('change', () => { calculateTarget(false); updateTotalAndAdvice(); });
+      genderSelect.addEventListener('change', () => { calculateTarget(false); updateTotalAndAdvice(); });
+      activitySelect.addEventListener('change', () => { calculateTarget(false); updateTotalAndAdvice(); });
+      customFoodCal.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomFood(); } });
+      customFoodName.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomFood(); } });
+
+      renderFoodGrid(); calculateTarget(false); targetCalDisplay.textContent = targetCalories; updateTotalAndAdvice();
+    })();
+  </script>
+</body>
+</html>
